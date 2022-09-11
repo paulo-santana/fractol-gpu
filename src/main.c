@@ -1,10 +1,19 @@
 #include "../minilibx-linux/mlx.h"
-#include <sys/time.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <math.h>
-#include <stdio.h>
 #include "fractol.h"
+
+double get_delta_time(t_data *fractol)
+{
+	double delta;
+
+	if (fractol->last_tick == 0)
+		fractol->last_tick = micros();
+
+	size_t current = micros();
+
+	delta = ((double)current - fractol->last_tick) / 1000000.;
+	fractol->last_tick = current;
+	return (delta);
+}
 
 void new_image(t_image *save_to, int width, int height, t_data *data)
 {
@@ -49,8 +58,13 @@ void init_data(t_data *data)
 	data->win_height = WIN_HEIGHT;
 	data->offset_x = -2;
 	data->offset_y = -1;
+	data->c_real = 0;
+	data->c_imag = 0;
 	data->scale = 300;
-	data->max_iter = 80;
+	data->zoom_in = 0;
+	data->zoom_out = 0;
+	data->max_iter = 180;
+	data->last_tick = micros();
 	generate_colors(data);
 	new_image(&data->img, WIN_WIDTH, WIN_HEIGHT, data);
 }
@@ -60,31 +74,7 @@ size_t micros(void)
 	struct timeval current;
 
 	gettimeofday(&current, NULL);
-	return (current.tv_sec * 1000000 + round(current.tv_usec));
-}
-
-void printfps(t_data *data)
-{
-	size_t current;
-	double fps;
-	double delta_time;
-	static size_t last_tick;
-	char buff[200];
-
-	current = micros();
-	delta_time = ((double) current - last_tick) / 1000000.;
-	fps = 1 / delta_time;
-	snprintf(buff, 200, "fps: %f", fps);
-	last_tick = current;
-	mlx_string_put(data->mlx, data->window, 10, 10, 0xffffff, buff);
-}
-
-int update(t_data *data)
-{
-	mandelbrot(data);
-	mlx_put_image_to_window(data->mlx, data->window, data->img.ptr, 0, 0);
-	printfps(data);
-	return (0);
+	return (current.tv_sec * 1000000 + current.tv_usec);
 }
 
 int main(void)
@@ -92,7 +82,10 @@ int main(void)
     t_data data;
 
 	init_data(&data);
-	mlx_key_hook(data.window, key_handler, &data);
+	get_delta_time(&data);
+	mlx_mouse_hook(data.window, wheel_handler, &data);
 	mlx_loop_hook(data.mlx, update, &data);
+	mlx_hook(data.window, 2, 1, key_press_hook, &data);
+	mlx_hook(data.window, 3, 2, key_release_hook, &data);
 	mlx_loop(data.mlx);
 }

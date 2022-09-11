@@ -13,7 +13,7 @@ void world_to_screen(
 	*screen_y = (world_y - fractol->offset_y) * fractol->scale;
 }
 
-__device__ void screen_to_world(
+__device__ static void screen_to_world(
 		t_data *fractol,
 		int screen_x,
 		int screen_y,
@@ -25,7 +25,7 @@ __device__ void screen_to_world(
 	*world_y = (screen_y / fractol->scale) + fractol->offset_y;
 }
 
-__global__ void calculate(int *pixels, t_data *fractol) {
+__global__ void calculate_mandelbrot(int *pixels, t_data *fractol) {
     size_t x = threadIdx.x;
     size_t y = blockIdx.x;
     int i = 0;
@@ -50,6 +50,34 @@ __global__ void calculate(int *pixels, t_data *fractol) {
         pixels[position] = fractol->colors[i];
 }
 
+__global__ void calculate_julia(int *pixels, t_data *fractol) {
+    double real = 0,
+           imag = 0,
+           x2 = 0,
+           y2 = 0;
+    size_t x = threadIdx.x;
+    size_t y = blockIdx.x;
+    int position = y * fractol->img.width + x;
+    int i = 0;
+
+    real = x / fractol->scale + fractol->offset_x;
+    imag = y / fractol->scale + fractol->offset_y;
+    x2 = real * real;
+    y2 = imag * imag;
+    while (x2 + y2 <= 4 && i < fractol->max_iter)
+    {
+        imag = (real + real) * imag + fractol->c_imag;
+        real = x2 - y2 + fractol->c_real;
+        x2 = real * real;
+        y2 = imag * imag;
+        i++;
+    }
+    if (i == fractol->max_iter)
+        pixels[position] = 0;
+    else
+        pixels[position] = fractol->colors[i];
+}
+
 extern "C"
 void mandelbrot(t_data *fractol) {
     int *d_data;
@@ -62,7 +90,8 @@ void mandelbrot(t_data *fractol) {
 
     cudaMemcpy(d_fractol, fractol, sizeof(t_data), cudaMemcpyHostToDevice);
 
-    calculate<<<fractol->img.height, fractol->img.width>>>(d_data, d_fractol);
+    /* calculate_mandelbrot<<<fractol->img.height, fractol->img.width>>>(d_data, d_fractol); */
+    calculate_mandelbrot<<<fractol->img.height, fractol->img.width>>>(d_data, d_fractol);
 
     cudaMemcpy(fractol->img.data, d_data, data_size, cudaMemcpyDeviceToHost);
 

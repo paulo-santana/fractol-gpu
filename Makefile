@@ -14,7 +14,7 @@ OBJ = $(addprefix $(OBJ_DIR)/, $(SRC:.c=.o))
 OBJ += $(addprefix $(OBJ_DIR)/, $(CUDA_SRC:.cu=.o))
 
 CC = nvcc
-CFLAGS = -g
+CFLAGS = -O3
 LFLAGS = -L $(MLX_DIR) -lmlx -lXext -lX11 -lm
 
 RM = rm -rf

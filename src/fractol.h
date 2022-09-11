@@ -1,8 +1,14 @@
 #ifndef FRACTOL_H
 # define FRACTOL_H
 
-#define WIN_WIDTH 800
-#define WIN_HEIGHT 600
+# include <sys/time.h>
+# include <stddef.h>
+# include <stdlib.h>
+# include <math.h>
+# include <stdio.h>
+
+# define WIN_WIDTH 1024
+# define WIN_HEIGHT 768
 
 typedef struct s_image t_image;
 typedef struct s_data t_data;
@@ -24,14 +30,24 @@ struct s_data
 	int win_width;
 	int win_height;
 	int max_iter;
+	int zoom_in;
+	int zoom_out;
 	unsigned int colors[1024];
 	double scale;
+	double c_real;
+	double c_imag;
 	double offset_x;
 	double offset_y;
+	size_t last_tick;
     t_image img;
 };
 
-int key_handler(int key, t_data *data);
+int update(t_data *data);
+int key_press_hook(int key, t_data *fractol);
+int key_release_hook(int key, t_data *fractol);
+int wheel_handler(int button, int x, int y, void *param);
+size_t micros(void);
+double get_delta_time(t_data *fractol);
 
 void world_to_screen(t_data *fractol, long double world_x, long double world_y, int *screen_x, int *screen_y);
 // void screen_to_world(t_data *fractol, int screen_x, int screen_y, long double *world_x, long double *world_y);
